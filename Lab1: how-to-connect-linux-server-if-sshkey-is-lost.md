@@ -1,4 +1,5 @@
-If you lose the private key for an EBS-backed instance, you can regain access to your instance.
+<h1 class='block'>If you lose the private key for an EBS-backed instance, you can regain access to your instance.
+ <span class='badge badge-flexible'></span></h1>
 
 You must stop the instance, detach its root volume and attach it to another instance as a data volume, modify the authorized_keys file with a new public key, move the volume back to the original instance, and restart the instance.
 
