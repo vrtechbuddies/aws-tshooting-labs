@@ -7,11 +7,11 @@ Note: This procedure is only supported for instances with EBS root volumes. If t
 
 Steps for connecting to an EBS-backed instance with a different key pair
 
-Step 1: Create a new key pair
+<b> Step 1: Create a new key pair </b>
 
 Create a new key pair using either the Amazon EC2 console or a third-party tool. If you want to name your new key pair exactly the same as the lost private key, you must first delete the existing key pair.
 
-Step 2: Get information about the original instance and its root volume
+<b> Step 2: Get information about the original instance and its root volume </b>
 
 Make note of the following information because you'll need it to complete this procedure.
 
@@ -27,11 +27,11 @@ To get information about your original instance
 
     On the Storage tab, under Root device name, make note of the device name for the root volume (for example, /dev/xvda). Then, under Block devices, find this device name and make note of the volume ID (for example, vol-0a1234b5678c910de).
 
-Step 3: Stop the original instance
+<b>Step 3: Stop the original instance</b>
 
 Choose Instance state, Stop instance. If this option is disabled, either the instance is already stopped or its root device is an instance store volume.
 
-Step 4: Launch a temporary instance
+<b>Step 4: Launch a temporary instance</b>
 
 Choose Launch instances, and then use the launch wizard to launch a temporary instance with the following options:
 
@@ -45,8 +45,51 @@ Choose Launch instances, and then use the launch wizard to launch a temporary in
 
     On the Review page, choose Launch. Choose the key pair that you created in Step 1, then choose Launch Instances.
 
-Step 5: Detach the root volume from the original instance and attach it to the temporary instance
-Step 6: Add the new public key to authorized_keys on the original volume mounted to the temporary instance
+<b>Step 5: Detach the root volume from the original instance and attach it to the temporary instance </b>
+
+    In the navigation pane, choose Volumes and select the root device volume for the original instance (you made note of its volume ID in a previous step).
+    Choose Actions, Detach Volume, and then select Yes, Detach.
+    Wait for the state of the volume to become available. (You might need to choose the Refresh icon.)
+
+    With the volume still selected, choose Actions, and then select Attach Volume.
+    Select the instance ID of the temporary instance, make note of the device name specified under Device (for example, /dev/sdf), and then choose Attach.
+
+
+
+<b>Step 6: Add the new public key to authorized_keys on the original volume mounted to the temporary instance </b>
+
+1. Connect to the temporary instance
+2. From the temporary instance, mount the volume that you attached to the instance so that you can access its file system.
+
+    a. Use the lsblk command to determine if the volume is partitioned.
+
+    [ec2-user ~]$ lsblk
+    NAME    MAJ:MIN RM SIZE RO TYPE MOUNTPOINT
+    xvda    202:0    0   8G  0 disk
+    └─xvda1 202:1    0   8G  0 part /
+    xvdf    202:80   0   8G  0 disk
+    └─xvdf1 202:81   0   8G  0 part
+
+    b. Create a temporary directory to mount the volume.
+
+    [ec2-user ~]$ sudo mkdir /mnt/tempvol
+
+    c. Mount the volume (or partition) at the temporary mount point, using the volume name or device name that you identified earlier.
+
+    [ec2-user ~]$ sudo mount -o nouuid /dev/xvdf1 /mnt/tempvol
+
+3. From the temporary instance, use the following command to update authorized_keys on the mounted volume with the new public key from the authorized_keys for the temporary instance.
+
+    [ec2-user ~]$ cp .ssh/authorized_keys /mnt/tempvol/home/ec2-user/.ssh/authorized_keys
+
 Step 7: Unmount and detach the original volume from the temporary instance, and reattach it to the original instance
+    a. Use umount command to unmount the original drive
+
+    [ec2-user ~]$ sudo umount /mnt/tempvol
+
+    b. Goto AWS Console, Select the volume and detach it from the old server
+
+    c. With the same volume selected, attach it to the original server. Note: The device name should be xvda, as its a root volume.
+
 Step 8: Connect to the original instance using the new key pair
 Step 9: Clean up
